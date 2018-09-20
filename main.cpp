@@ -109,6 +109,7 @@ public:
 	}
 	void solve()
 	{
+if(not actualCell().value) setLowestPossibleValueInActualCell();
 	    while(true)
 		{
 ////////////std::cout << "*" << actualIndex << "*";
@@ -160,8 +161,8 @@ private:
 	    {
 	        auto row = index/sudokuVector.rows;
 	        auto col = index%sudokuVector.cols;
-	        return row == std::clamp(row, sqr_index/3, sqr_index/3+3-1) and
-	               col == std::clamp(col, sqr_index%3, sqr_index%3+3-1);   //magic numbers
+                return row == std::clamp(row, 3*(sqr_index/3), 3*(sqr_index/3)+3-1) and
+	               col == std::clamp(col, 3*(sqr_index%3), 3*(sqr_index%3)+3-1);   //magic numbers
 	    };
 	    return hasUniqueElements(sudokuVector.getSpecificPart(nthSqr));
 	}
@@ -193,15 +194,15 @@ private:
  
 int main()
 {
-    const std::string sudokuGrid{"7  2 4 1 "
-                                 "95  6  3 "
-                                 "2  1 8 57"
-                                 "  3  5   "
-                                 "    7    "
-                                 "1 23 9   "
-                                 "         "
-                                 "         "
-                                 "         "};
+    const std::string sudokuGrid{"  3 2 6  "
+                                 "9  3 5  1"
+                                 "  18 64  "
+                                 "  81 29  "
+                                 "7       8"
+                                 "  67 82  "
+                                 "  26 95  "
+                                 "8  2 3  9"
+                                 "  5 1 3  "};
 	SudokuSolver sudokuSolver(sudokuGrid);
 	sudokuSolver.solve();
 	sudokuSolver.display();
