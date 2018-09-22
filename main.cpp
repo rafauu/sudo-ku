@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <vector>
 #include <optional>
@@ -6,7 +7,6 @@
 #include <numeric>
 #include <set>
 #include <algorithm>
-#include <iomanip> // setw
 #include <boost/range/adaptors.hpp>
 #include <boost/range/irange.hpp>
 
@@ -14,17 +14,12 @@ template <typename T>
 class FlattenVector
 {
 public:
-    FlattenVector<T>(uint rows, uint cols)
-    : rows{rows}, cols{cols}
-    {
-        vec.reserve(rows*cols);
-    };
-
+    FlattenVector<T>(uint size) { vec.reserve(size); };
     T& operator[](uint index) { return vec[index]; }
     const T& operator[](uint index) const { return vec[index]; }
     void emplace_back(T&& element) { vec.emplace_back(std::move(element)); }
     size_t size() const { return vec.size(); }
-    std::vector<T> getSpecificPart(const auto& predicate)
+    std::vector<T> getSpecificPart(const auto& predicate) const
     {
         std::vector<uint> indexes(vec.size());
         std::iota(indexes.begin(), indexes.end(), 0);
@@ -33,19 +28,14 @@ public:
         return boost::copy_range<std::vector<T>>(indexes | filtered(predicate)
                                                          | transformed(indexToValueFromVector));
     }
-    void display() const
+    friend std::ostream& operator<<(std::ostream& os, const FlattenVector<T>& flattenVec)
     {
-        using namespace boost::adaptors;
-        for(const auto& el : vec | indexed(0))
-        {
-            if(el.index() % cols == 0) std::cout << std::endl;
-            std::cout << std::setw(2) << el.value() << " "; //remove setw and iomanip
-        }
-        std::cout << std::endl;//remove
+        std::copy(flattenVec.vec.cbegin(),
+                  flattenVec.vec.cend(),
+                  std::ostream_iterator<T>(os, " "));
+        std::cout << std::endl;
+        return os;
     }
-
-    const uint rows;
-    const uint cols;
 
 private:
     std::vector<T> vec;
@@ -92,13 +82,64 @@ namespace
  
     uint charToUint(char ch) { return static_cast<uint>(ch-'0'); }
 }
- 
+
+class SudokuChecker
+{
+public:
+    SudokuChecker(const FlattenVector<Cell>& sudokuVector)
+    : sudokuVector{sudokuVector}
+    {}
+    bool isSudokuCorrect() const
+    {
+        for(auto i : boost::irange(0u, gridSize))
+        {
+            if(not nthRowIsCorrect(i) or
+               not nthColIsCorrect(i) or
+               not nthSqrIsCorrect(i))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+private:
+    const FlattenVector<Cell>& sudokuVector;
+
+    static constexpr uint latinSqrSize{3};
+    static constexpr uint gridSize{9};
+
+    bool nthRowIsCorrect(uint row_index) const
+    {
+        auto nthRow = [this, row_index](uint index){ return index/gridSize == row_index; };
+        return hasUniqueElements(sudokuVector.getSpecificPart(nthRow));
+    }
+
+    bool nthColIsCorrect(uint col_index) const
+    {
+        auto nthCol = [this, col_index](uint index){ return index%gridSize == col_index; };
+        return hasUniqueElements(sudokuVector.getSpecificPart(nthCol));
+    }
+
+    bool nthSqrIsCorrect(uint sqr_index) const
+    {
+        auto nthSqr = [this, sqr_index](uint index)
+        {
+            auto row = index/gridSize;
+            auto col = index%gridSize;
+            return row == std::clamp(row, 3*(sqr_index/3), 3*(sqr_index/3)+3-1) and
+                   col == std::clamp(col, 3*(sqr_index%3), 3*(sqr_index%3)+3-1);   //magic numbers, latinSqrSize
+        };
+        return hasUniqueElements(sudokuVector.getSpecificPart(nthSqr));
+    }
+};
+
 class SudokuSolver
 {
 public:
     SudokuSolver(const std::string& sudokuGrid)
     : actualIndex{0}
-    , sudokuVector(std::sqrt(sudokuGrid.size()), std::sqrt(sudokuGrid.size()))
+    , sudokuVector(sudokuGrid.size())
+    , sudokuChecker(sudokuVector)
     {
         for(const auto& value : sudokuGrid)
         {
@@ -112,16 +153,16 @@ public:
         if(not actualCell().value) setLowestPossibleValueInActualCell();
         while(true)
         {
-            if(allCellsAreCorrect())
+            if(sudokuChecker.isSudokuCorrect())
             {
                 goToNextModifiableCell();
-                if(actualIndex >= sudokuVector.size()) break;
+                if(actualIndex >= cellQuantity) break;
                 setLowestPossibleValueInActualCell();
             }
             else
             {
                 while(actualCell().value and
-                      *actualCell().value == 9)//magic number
+                      *actualCell().value == maxValueInCell)//to func
                 {
                     cleanActualCell();
                     goToPreviousModifiableCell();
@@ -132,58 +173,24 @@ public:
     }
     void display()
     {
-        sudokuVector.display();
+        std::cout << sudokuVector;
     }
 private:
     uint actualIndex;
     FlattenVector<Cell> sudokuVector;
+    SudokuChecker sudokuChecker;
 
-    bool nthRowIsCorrect(uint row_index)
-    {
-        auto nthRow = [this, row_index](uint index){ return index/sudokuVector.rows == row_index; };
-        return hasUniqueElements(sudokuVector.getSpecificPart(nthRow));
-    }
+    static constexpr uint cellQuantity{81};
+    static constexpr uint minValueInCell{1};
+    static constexpr uint maxValueInCell{9};
 
-    bool nthColIsCorrect(uint col_index)
-    {
-        auto nthCol = [this, col_index](uint index){ return index%sudokuVector.cols == col_index; };
-        return hasUniqueElements(sudokuVector.getSpecificPart(nthCol));
-    }
-
-    bool nthSqrIsCorrect(uint sqr_index)
-    {
-        auto nthSqr = [this, sqr_index](uint index)
-        {
-            auto row = index/sudokuVector.rows;
-            auto col = index%sudokuVector.cols;
-            return row == std::clamp(row, 3*(sqr_index/3), 3*(sqr_index/3)+3-1) and
-                   col == std::clamp(col, 3*(sqr_index%3), 3*(sqr_index%3)+3-1);   //magic numbers
-        };
-        return hasUniqueElements(sudokuVector.getSpecificPart(nthSqr));
-    }
-
-    //add SudokuChecker
-
-    bool allCellsAreCorrect()
-    {
-        for(auto i : boost::irange(0u, sudokuVector.rows))
-        {
-            if(not nthRowIsCorrect(i) or
-               not nthColIsCorrect(i) or
-               not nthSqrIsCorrect(i))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
     Cell& actualCell() { return sudokuVector[actualIndex]; }
     const Cell& actualCell() const { return sudokuVector[actualIndex]; }
 
     void goToNextModifiableCell() { do { ++actualIndex; } while(not actualCell().isModifiable); }
     void goToPreviousModifiableCell() { do { --actualIndex; } while(not actualCell().isModifiable); }
     void cleanActualCell() { actualCell() = Cell(); }
-    void setLowestPossibleValueInActualCell() { actualCell().changeValue(1); }//magic number
+    void setLowestPossibleValueInActualCell() { actualCell().changeValue(minValueInCell); }
     void incrementValueInActualCell() { actualCell().increment(); }
 };
 
