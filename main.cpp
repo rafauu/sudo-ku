@@ -150,12 +150,11 @@ public:
     }
     void solve()
     {
-        if(not actualCell().value) setLowestPossibleValueInActualCell();
         while(true)
         {
             if(sudokuChecker.isSudokuCorrect())
             {
-                goToNextModifiableCell();
+                goToNextEmptyCell();
                 if(actualIndex >= cellQuantity) break;
                 setLowestPossibleValueInActualCell();
             }
@@ -187,7 +186,7 @@ private:
     Cell& actualCell() { return sudokuVector[actualIndex]; }
     const Cell& actualCell() const { return sudokuVector[actualIndex]; }
 
-    void goToNextModifiableCell() { do { ++actualIndex; } while(not actualCell().isModifiable); }
+    void goToNextEmptyCell() { while(actualCell().value) { ++actualIndex; }; }
     void goToPreviousModifiableCell() { do { --actualIndex; } while(not actualCell().isModifiable); }
     void cleanActualCell() { actualCell() = Cell(); }
     void setLowestPossibleValueInActualCell() { actualCell().changeValue(minValueInCell); }
