@@ -45,8 +45,8 @@ struct Cell
 {
     Cell(std::optional<uint> value = std::nullopt,
          bool isModifiable = true)
-    : value{value}
-    , isModifiable{isModifiable}
+      : value{value}
+      , isModifiable{isModifiable}
     {}
     friend std::ostream& operator<<(std::ostream& os, const Cell& cell)
     {
@@ -83,11 +83,52 @@ namespace
     uint charToUint(char ch) { return static_cast<uint>(ch-'0'); }
 }
 
+class Sudoku
+{
+public:
+    Sudoku(const std::string& sudokuGrid)
+      : actualIndex{0}
+      , sudokuVector(sudokuGrid.size())
+    {
+        for(const auto& value : sudokuGrid)
+        {
+            sudokuVector.emplace_back(isdigit(value)
+                                      ? Cell(charToUint(value), false)
+                                      : Cell());
+        }
+    }
+    void display()
+    {
+        std::cout << sudokuVector;
+    }
+    std::vector<Cell> getSpecificPart(const auto& predicate) const
+    {
+        return sudokuVector.getSpecificPart(predicate);
+    }
+    void goToNextEmptyCell() { while(actualCell().value) { ++actualIndex; }; }
+    void goToPreviousModifiableCell() { do { --actualIndex; } while(not actualCell().isModifiable); }
+    void cleanActualCell() { actualCell() = Cell(); }
+    void setLowestPossibleValueInActualCell() { actualCell().changeValue(minValueInCell); }
+    void incrementValueInActualCell() { actualCell().increment(); }
+    bool isMaxValueSet() const { return actualCell().value and *actualCell().value == maxValueInCell; }
+    bool isIndexValid() const { return actualIndex < cellQuantity; }
+private:
+    uint actualIndex;
+    FlattenVector<Cell> sudokuVector;
+
+    static constexpr uint cellQuantity{81};
+    static constexpr uint minValueInCell{1};
+    static constexpr uint maxValueInCell{9};
+
+    Cell& actualCell() { return sudokuVector[actualIndex]; }
+    const Cell& actualCell() const { return sudokuVector[actualIndex]; }
+};
+
 class SudokuChecker
 {
 public:
-    SudokuChecker(const FlattenVector<Cell>& sudokuVector)
-    : sudokuVector{sudokuVector}
+    SudokuChecker(const Sudoku& sudokuVector)
+      : sudokuVector{sudokuVector}
     {}
     bool isSudokuCorrect() const
     {
@@ -103,7 +144,7 @@ public:
         return true;
     }
 private:
-    const FlattenVector<Cell>& sudokuVector;
+    const Sudoku& sudokuVector;
 
     static constexpr uint latinSqrSize{3};
     static constexpr uint gridSize{9};
@@ -126,8 +167,10 @@ private:
         {
             auto row = index/gridSize;
             auto col = index%gridSize;
-            return row == std::clamp(row, 3*(sqr_index/3), 3*(sqr_index/3)+3-1) and
-                   col == std::clamp(col, 3*(sqr_index%3), 3*(sqr_index%3)+3-1);   //magic numbers, latinSqrSize
+            auto latinSqrRowIndex = latinSqrSize*(sqr_index/latinSqrSize);
+            auto latinSqrColIndex = latinSqrSize*(sqr_index%latinSqrSize);
+            return row == std::clamp(row, latinSqrRowIndex, latinSqrRowIndex + latinSqrSize - 1) and
+                   col == std::clamp(col, latinSqrColIndex, latinSqrColIndex + latinSqrSize - 1);
         };
         return hasUniqueElements(sudokuVector.getSpecificPart(nthSqr));
     }
@@ -136,61 +179,34 @@ private:
 class SudokuSolver
 {
 public:
-    SudokuSolver(const std::string& sudokuGrid)
-    : actualIndex{0}
-    , sudokuVector(sudokuGrid.size())
-    , sudokuChecker(sudokuVector)
-    {
-        for(const auto& value : sudokuGrid)
-        {
-            sudokuVector.emplace_back(isdigit(value)
-                                      ? Cell(charToUint(value), false)
-                                      : Cell());
-        }
-    }
+    SudokuSolver(Sudoku& sudokuToSolve)
+      : sudoku(sudokuToSolve)
+      , sudokuChecker(sudoku)
+    {}
     void solve()
     {
         while(true)
         {
             if(sudokuChecker.isSudokuCorrect())
             {
-                goToNextEmptyCell();
-                if(actualIndex >= cellQuantity) break;
-                setLowestPossibleValueInActualCell();
+                sudoku.goToNextEmptyCell();
+                if(not sudoku.isIndexValid()) break;
+                sudoku.setLowestPossibleValueInActualCell();
             }
             else
             {
-                while(actualCell().value and
-                      *actualCell().value == maxValueInCell)//to func
+                while(sudoku.isMaxValueSet())
                 {
-                    cleanActualCell();
-                    goToPreviousModifiableCell();
+                    sudoku.cleanActualCell();
+                    sudoku.goToPreviousModifiableCell();
                 }
-                incrementValueInActualCell();
+                sudoku.incrementValueInActualCell();
             }
         }
     }
-    void display()
-    {
-        std::cout << sudokuVector;
-    }
 private:
-    uint actualIndex;
-    FlattenVector<Cell> sudokuVector;
+    Sudoku& sudoku;
     SudokuChecker sudokuChecker;
-
-    static constexpr uint cellQuantity{81};
-    static constexpr uint minValueInCell{1};
-    static constexpr uint maxValueInCell{9};
-
-    Cell& actualCell() { return sudokuVector[actualIndex]; }
-    const Cell& actualCell() const { return sudokuVector[actualIndex]; }
-
-    void goToNextEmptyCell() { while(actualCell().value) { ++actualIndex; }; }
-    void goToPreviousModifiableCell() { do { --actualIndex; } while(not actualCell().isModifiable); }
-    void cleanActualCell() { actualCell() = Cell(); }
-    void setLowestPossibleValueInActualCell() { actualCell().changeValue(minValueInCell); }
-    void incrementValueInActualCell() { actualCell().increment(); }
 };
 
 int main()
@@ -204,8 +220,9 @@ int main()
                                  "  26 95  "
                                  "8  2 3  9"
                                  "  5 1 3  "};
-    SudokuSolver sudokuSolver(sudokuGrid);
+    Sudoku sudoku(sudokuGrid);
+    SudokuSolver sudokuSolver(sudoku);
     sudokuSolver.solve();
-    sudokuSolver.display();
+    sudoku.display();
     return 0;
 }
