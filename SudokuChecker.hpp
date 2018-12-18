@@ -27,16 +27,15 @@ namespace
 class SudokuChecker
 {
 public:
-    SudokuChecker(const Sudoku& sudokuVector)
-      : sudokuVector{sudokuVector}
-    {}
-    bool isSudokuCorrect() const
+    SudokuChecker() = default;
+
+    bool isSudokuCorrect(const Sudoku& sudoku) const
     {
         for(auto i : boost::irange(0u, gridSize))
         {
-            if(not nthRowIsCorrect(i) or
-               not nthColIsCorrect(i) or
-               not nthSqrIsCorrect(i))
+            if(not nthRowIsCorrect(sudoku, i) or
+               not nthColIsCorrect(sudoku, i) or
+               not nthSqrIsCorrect(sudoku, i))
             {
                 return false;
             }
@@ -44,24 +43,22 @@ public:
         return true;
     }
 private:
-    const Sudoku& sudokuVector;
-
     static constexpr uint latinSqrSize{3};
     static constexpr uint gridSize{9};
 
-    bool nthRowIsCorrect(uint row_index) const
+    bool nthRowIsCorrect(const Sudoku& sudoku, uint row_index) const
     {
         auto nthRow = [this, row_index](uint index){ return index/gridSize == row_index; };
-        return hasUniqueElements(sudokuVector.getSpecificPart(nthRow));
+        return hasUniqueElements(sudoku.getSpecificPart(nthRow));
     }
 
-    bool nthColIsCorrect(uint col_index) const
+    bool nthColIsCorrect(const Sudoku& sudoku, uint col_index) const
     {
         auto nthCol = [this, col_index](uint index){ return index%gridSize == col_index; };
-        return hasUniqueElements(sudokuVector.getSpecificPart(nthCol));
+        return hasUniqueElements(sudoku.getSpecificPart(nthCol));
     }
 
-    bool nthSqrIsCorrect(uint sqr_index) const
+    bool nthSqrIsCorrect(const Sudoku& sudoku, uint sqr_index) const
     {
         auto nthSqr = [this, sqr_index](uint index)
         {
@@ -72,6 +69,6 @@ private:
             return row == std::clamp(row, latinSqrRowIndex, latinSqrRowIndex + latinSqrSize - 1) and
                    col == std::clamp(col, latinSqrColIndex, latinSqrColIndex + latinSqrSize - 1);
         };
-        return hasUniqueElements(sudokuVector.getSpecificPart(nthSqr));
+        return hasUniqueElements(sudoku.getSpecificPart(nthSqr));
     }
 };

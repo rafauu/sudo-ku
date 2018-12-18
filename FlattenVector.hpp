@@ -14,7 +14,7 @@ public:
     const T& operator[](uint index) const { return vec[index]; }
     void emplace_back(T&& element) { vec.emplace_back(std::move(element)); }
     size_t size() const { return vec.size(); }
-    std::vector<T> getSpecificPart(const auto& predicate) const
+    auto getSpecificPart(std::function<bool(uint)> predicate) const
     {
         std::vector<uint> indexes(vec.size());
         std::iota(indexes.begin(), indexes.end(), 0);

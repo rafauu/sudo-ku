@@ -1,5 +1,3 @@
-#include <string>
-#include "Sudoku.hpp"
 #include "SudokuSolver.hpp"
 
 int main()
@@ -13,9 +11,11 @@ int main()
                                  "  26 95  "
                                  "8  2 3  9"
                                  "  5 1 3  "};
-    Sudoku sudoku(sudokuGrid);
-    SudokuSolver sudokuSolver(sudoku);
-    sudokuSolver.solve();
-    sudoku.display();
+    auto sudoku{std::make_unique<Sudoku>(sudokuGrid)};
+    auto sudokuChecker{std::make_unique<SudokuChecker>()};
+    auto sudokuSolver{std::make_unique<SudokuSolver>(std::move(sudoku),
+                                                     std::move(sudokuChecker))};
+    sudokuSolver->solve();
+    sudokuSolver->display();
     return 0;
 }

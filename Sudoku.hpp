@@ -14,22 +14,22 @@ class Sudoku
 public:
     Sudoku(const std::string& sudokuGrid)
       : actualIndex{0}
-      , sudokuVector(sudokuGrid.size())
+      , cellsVector(sudokuGrid.size())
     {
         for(const auto& value : sudokuGrid)
         {
-            sudokuVector.emplace_back(isdigit(value)
+            cellsVector.emplace_back(isdigit(value)
                                       ? Cell(charToUint(value), false)
                                       : Cell());
         }
     }
     void display()
     {
-        std::cout << sudokuVector;
+        std::cout << cellsVector;
     }
-    std::vector<Cell> getSpecificPart(const auto& predicate) const
+    auto getSpecificPart(std::function<bool(uint)>&& predicate) const
     {
-        return sudokuVector.getSpecificPart(predicate);
+        return cellsVector.getSpecificPart(std::move(predicate));
     }
     void goToNextEmptyCell() { while(actualCell().value) { ++actualIndex; } }
     void goToPreviousFilledCell() { while(not actualCell().value or not actualCell().isModifiable) { --actualIndex; } }
@@ -40,13 +40,13 @@ public:
     bool isIndexValid() const { return actualIndex < cellQuantity; }
 private:
     uint actualIndex;
-    FlattenVector<Cell> sudokuVector;
+    FlattenVector<Cell> cellsVector;
 
     static constexpr uint cellQuantity{81};
     static constexpr uint minValueInCell{1};
     static constexpr uint maxValueInCell{9};
 
-    Cell& actualCell() { return sudokuVector[actualIndex]; }
-    const Cell& actualCell() const { return sudokuVector[actualIndex]; }
+    Cell& actualCell() { return cellsVector[actualIndex]; }
+    const Cell& actualCell() const { return cellsVector[actualIndex]; }
 };
 

@@ -5,32 +5,40 @@
 class SudokuSolver
 {
 public:
-    SudokuSolver(Sudoku& sudokuToSolve)
-      : sudoku(sudokuToSolve)
-      , sudokuChecker(sudoku)
+    SudokuSolver(std::unique_ptr<Sudoku> sudoku,
+                 std::unique_ptr<SudokuChecker> sudokuChecker)
+        : sudoku(std::move(sudoku))
+        , sudokuChecker(std::move(sudokuChecker))
     {}
+
     void solve()
     {
         while(true)
         {
-            if(sudokuChecker.isSudokuCorrect())
+            if(sudokuChecker->isSudokuCorrect(*sudoku))
             {
-                sudoku.goToNextEmptyCell();
-                if(not sudoku.isIndexValid()) break;
-                sudoku.setLowestPossibleValueInActualCell();
+                sudoku->goToNextEmptyCell();
+                if(not sudoku->isIndexValid()) break;
+                sudoku->setLowestPossibleValueInActualCell();
             }
             else
             {
-                while(sudoku.isMaxValueSet())
+                while(sudoku->isMaxValueSet())
                 {
-                    sudoku.cleanActualCell();
-                    sudoku.goToPreviousFilledCell();
+                    sudoku->cleanActualCell();
+                    sudoku->goToPreviousFilledCell();
                 }
-                sudoku.incrementValueInActualCell();
+                sudoku->incrementValueInActualCell();
             }
         }
     }
+
+    void display() const
+    {
+        sudoku->display();
+    }
+
 private:
-    Sudoku& sudoku;
-    SudokuChecker sudokuChecker;
+    std::unique_ptr<Sudoku> sudoku;
+    std::unique_ptr<SudokuChecker> sudokuChecker;
 };
