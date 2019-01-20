@@ -3,6 +3,7 @@
 #include <vector>
 #include "FlattenVector.hpp"
 #include "Cell.hpp"
+#include "CommonDefinitions.hpp"
 
 namespace
 {
@@ -40,7 +41,7 @@ public:
     bool isIndexValid() const { return actualIndex < cellQuantity; }
 private:
     uint actualIndex;
-    FlattenVector<Cell> cellsVector;
+    FlattenVector<Cell, gridSize> cellsVector;
 
     static constexpr uint cellQuantity{81};
     static constexpr uint minValueInCell{1};

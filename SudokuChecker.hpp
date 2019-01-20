@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <boost/range/irange.hpp>
 #include <boost/range/adaptors.hpp>
+#include <boost/algorithm/cxx11/all_of.hpp>
 #include "Sudoku.hpp"
+#include "CommonDefinitions.hpp"
 
 namespace
 {
@@ -31,20 +33,16 @@ public:
 
     bool isSudokuCorrect(const Sudoku& sudoku) const
     {
-        for(auto i : boost::irange(0u, gridSize))
-        {
-            if(not nthRowIsCorrect(sudoku, i) or
-               not nthColIsCorrect(sudoku, i) or
-               not nthSqrIsCorrect(sudoku, i))
-            {
-                return false;
-            }
-        }
-        return true;
+        return boost::algorithm::all_of(boost::irange(0u, gridSize),
+                                        [this, &sudoku](uint index)
+                                        {
+                                            return nthRowIsCorrect(sudoku, index) and
+                                                   nthColIsCorrect(sudoku, index) and
+                                                   nthSqrIsCorrect(sudoku, index);
+                                        });
     }
 private:
     static constexpr uint latinSqrSize{3};
-    static constexpr uint gridSize{9};
 
     bool nthRowIsCorrect(const Sudoku& sudoku, uint row_index) const
     {

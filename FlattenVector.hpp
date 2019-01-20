@@ -4,12 +4,13 @@
 #include <numeric>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
+#include <boost/range/irange.hpp>
 
-template <typename T>
+template <typename T, uint rowSize>
 class FlattenVector
 {
 public:
-    FlattenVector<T>(uint size) { vec.reserve(size); };
+    FlattenVector<T, rowSize>(uint size) { vec.reserve(size); };
     T& operator[](uint index) { return vec[index]; }
     const T& operator[](uint index) const { return vec[index]; }
     void emplace_back(T&& element) { vec.emplace_back(std::move(element)); }
@@ -23,11 +24,14 @@ public:
         return boost::copy_range<std::vector<T>>(indexes | filtered(predicate)
                                                          | transformed(indexToValueFromVector));
     }
-    friend std::ostream& operator<<(std::ostream& os, const FlattenVector<T>& flattenVec)
+    friend std::ostream& operator<<(std::ostream& os, const FlattenVector<T, rowSize>& flattenVec)
     {
-        boost::copy(flattenVec.vec,
-                    std::ostream_iterator<T>(os, " "));
-        std::cout << std::endl;
+        for(auto index : boost::irange(0lu, flattenVec.vec.size()))
+        {
+            os << flattenVec.vec[index] << " ";
+            if((index + 1) % rowSize == 0)
+                os << std::endl;
+        }
         return os;
     }
 
