@@ -11,7 +11,7 @@ struct Cell
     {}
     friend std::ostream& operator<<(std::ostream& os, const Cell& cell)
     {
-        os << (cell.value ? *(cell.value) : ' ');
+        os << (cell.value ? std::to_string(*(cell.value)) : u8"\u2800");
         return os;
     }
     bool operator==(const Cell& rhs) const { return value == rhs.value; }

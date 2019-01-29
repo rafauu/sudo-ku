@@ -32,6 +32,7 @@ public:
             if((index + 1) % rowSize == 0)
                 os << std::endl;
         }
+        os << std::endl;
         return os;
     }
 

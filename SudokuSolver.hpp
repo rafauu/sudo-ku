@@ -1,6 +1,8 @@
 #pragma once
 #include "Sudoku.hpp"
 #include "SudokuChecker.hpp"
+#include <chrono>
+#include <thread>
 
 class SudokuSolver
 {
@@ -30,6 +32,8 @@ public:
                 }
                 sudoku->incrementValueInActualCell();
             }
+            display();
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
         }
     }
 
