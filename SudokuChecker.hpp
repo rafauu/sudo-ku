@@ -11,18 +11,9 @@
 namespace
 {
     template<typename T>
-    std::vector<T> filterOutElementsWithoutValues(const std::vector<T>& vec)
-    {
-        auto hasValue = [](const T& element){ return element; };
-        using namespace boost::adaptors;
-        return boost::copy_range<std::vector<T>>(vec | filtered(hasValue));
-    }
-
-    template<typename T>
     bool hasUniqueElements(const std::vector<T>& vec)
     {
-        auto temp = filterOutElementsWithoutValues(vec);
-        return temp.size() == std::set<T>(temp.begin(), temp.end()).size();
+        return vec.size() == std::set<T>(vec.cbegin(), vec.cend()).size();
     }
 }
 
@@ -44,29 +35,34 @@ public:
 private:
     static constexpr uint latinSqrSize{3};
 
-    bool nthRowIsCorrect(const Sudoku& sudoku, uint row_index) const
+    bool nthRowIsCorrect(const Sudoku& sudoku, uint rowIndex) const
     {
-        auto nthRow = [this, row_index](uint index){ return index/gridSize == row_index; };
-        return hasUniqueElements(sudoku.getSpecificPart(nthRow));
+        return hasUniqueElements(
+                   sudoku.getFilledElements(
+                       boost::irange(gridSize * rowIndex, gridSize * (rowIndex + 1))));
     }
 
-    bool nthColIsCorrect(const Sudoku& sudoku, uint col_index) const
+    bool nthColIsCorrect(const Sudoku& sudoku, uint colIndex) const
     {
-        auto nthCol = [this, col_index](uint index){ return index%gridSize == col_index; };
-        return hasUniqueElements(sudoku.getSpecificPart(nthCol));
+        return hasUniqueElements(
+                   sudoku.getFilledElements(
+                       boost::irange(colIndex, gridElements, gridSize)));
     }
 
-    bool nthSqrIsCorrect(const Sudoku& sudoku, uint sqr_index) const
+    bool nthSqrIsCorrect(const Sudoku& sudoku, uint sqrIndex) const
     {
-        auto nthSqr = [this, sqr_index](uint index)
+        using namespace boost::adaptors;
+        auto nthSqr = [this, sqrIndex](uint index)
         {
             auto row = index/gridSize;
             auto col = index%gridSize;
-            auto latinSqrRowIndex = latinSqrSize*(sqr_index/latinSqrSize);
-            auto latinSqrColIndex = latinSqrSize*(sqr_index%latinSqrSize);
+            auto latinSqrRowIndex = latinSqrSize*(sqrIndex/latinSqrSize);
+            auto latinSqrColIndex = latinSqrSize*(sqrIndex%latinSqrSize);
             return row == std::clamp(row, latinSqrRowIndex, latinSqrRowIndex + latinSqrSize - 1) and
                    col == std::clamp(col, latinSqrColIndex, latinSqrColIndex + latinSqrSize - 1);
         };
-        return hasUniqueElements(sudoku.getSpecificPart(nthSqr));
+        return hasUniqueElements(
+                   sudoku.getFilledElements(
+                       boost::irange(0u, gridElements) | filtered(nthSqr)));
     }
 };
